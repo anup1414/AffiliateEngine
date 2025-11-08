@@ -46,8 +46,8 @@ Narayane Sena is a comprehensive membership and referral management platform bui
 1. Upload the 'narayane-sena' folder to the '/wp-content/themes/' directory
 2. Activate the theme through the 'Appearance' menu in WordPress
 3. The theme will automatically create necessary database tables
-4. Default admin credentials: Username: admin, Password: NarayaneSena2024!
-5. IMPORTANT: Change the admin password immediately after first login
+4. Use your existing WordPress admin account to manage the platform
+5. Navigate to the Narayane Sena menu in admin panel to configure settings
 
 == Frequently Asked Questions ==
 

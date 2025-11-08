@@ -101,24 +101,9 @@ function narayane_sena_create_tables() {
     dbDelta($sql_memberships);
     dbDelta($sql_earnings);
     dbDelta($sql_qr_codes);
-
-    // Create admin user if not exists
-    $admin_user = get_user_by('login', 'admin');
-    if (!$admin_user) {
-        $admin_password = get_option('ns_admin_password', 'NarayaneSena2024!');
-        wp_create_user('admin', $admin_password, 'admin@narayanesena.com');
-        
-        $user_id = username_exists('admin');
-        $user = get_user_by('id', $user_id);
-        $user->set_role('administrator');
-        
-        update_user_meta($user_id, 'ns_is_admin', true);
-        update_user_meta($user_id, 'first_name', 'Admin');
-    }
 }
-register_activation_hook(__FILE__, 'narayane_sena_create_tables');
 
-// Also run on theme switch
+// Run database setup on theme activation
 add_action('after_switch_theme', 'narayane_sena_create_tables');
 
 /**

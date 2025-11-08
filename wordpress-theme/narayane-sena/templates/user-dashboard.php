@@ -23,19 +23,19 @@ $earnings_table = $wpdb->prefix . 'ns_earnings';
 $memberships_table = $wpdb->prefix . 'ns_memberships';
 
 $total_earnings = $wpdb->get_var($wpdb->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM $earnings_table WHERE user_id = %d AND status = 'approved'",
+    "SELECT COALESCE(SUM(amount), 0) FROM $earnings_table WHERE user_id = %d AND status = 'paid'",
     $user_id
 ));
 
 $today_earnings = $wpdb->get_var($wpdb->prepare(
     "SELECT COALESCE(SUM(amount), 0) FROM $earnings_table 
-    WHERE user_id = %d AND status = 'approved' AND DATE(created_at) = CURDATE()",
+    WHERE user_id = %d AND status = 'paid' AND DATE(created_at) = CURDATE()",
     $user_id
 ));
 
 $week_earnings = $wpdb->get_var($wpdb->prepare(
     "SELECT COALESCE(SUM(amount), 0) FROM $earnings_table 
-    WHERE user_id = %d AND status = 'approved' AND YEARWEEK(created_at) = YEARWEEK(NOW())",
+    WHERE user_id = %d AND status = 'paid' AND YEARWEEK(created_at) = YEARWEEK(NOW())",
     $user_id
 ));
 
@@ -145,7 +145,7 @@ get_header(); ?>
                             <td><?php echo $referred_user ? esc_html($referred_user->display_name) : 'N/A'; ?></td>
                             <td>₹<?php echo number_format($earning->amount, 0); ?></td>
                             <td>
-                                <span class="badge badge-<?php echo $earning->status === 'approved' ? 'success' : 'warning'; ?>">
+                                <span class="badge badge-<?php echo $earning->status === 'paid' ? 'success' : 'warning'; ?>">
                                     <?php echo esc_html(ucfirst($earning->status)); ?>
                                 </span>
                             </td>

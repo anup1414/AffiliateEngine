@@ -47,10 +47,12 @@ get_header(); ?>
         <?php elseif ($membership && $membership->status === 'rejected'): ?>
             <div class="alert alert-danger">
                 <strong>Membership Rejected</strong><br>
-                Your previous membership application was rejected. Please try again with correct payment details.
+                Your previous membership application was rejected. You can submit a new membership application below with correct payment details.
             </div>
-            <?php include 'membership-form.php'; ?>
-        <?php else: ?>
+            <!-- Allow resubmission - show form below -->
+        <?php endif; ?>
+        
+        <?php if (!$membership || $membership->status === 'rejected'): ?>
             <!-- Membership Plans -->
             <div style="margin-bottom: 30px;">
                 <h3 style="text-align: center; margin-bottom: 20px;">Membership Plans</h3>
