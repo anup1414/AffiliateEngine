@@ -58,6 +58,13 @@ export const paymentQRCodes = pgTable("payment_qr_codes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Sessions table - for express-session storage
+export const sessions = pgTable("sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

@@ -6,12 +6,13 @@ import { storage } from "./storage";
 
 // Session configuration
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtlSeconds = 7 * 24 * 60 * 60; // 1 week in seconds
+  const sessionTtlMs = sessionTtlSeconds * 1000; // 1 week in milliseconds
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
+    createTableIfMissing: true,
+    ttl: sessionTtlSeconds, // connect-pg-simple expects seconds
     tableName: "sessions",
   });
   return session({
@@ -22,7 +23,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: sessionTtl,
+      maxAge: sessionTtlMs, // cookie maxAge expects milliseconds
     },
   });
 }
@@ -188,7 +189,9 @@ async function initializeAdmin() {
     const adminUser = await storage.getUserByUsername("admin");
     
     if (!adminUser) {
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      // Use environment variable or generate secure password
+      const adminPassword = process.env.ADMIN_PASSWORD || "NarayaneSena2024!";
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await storage.createUser({
         username: "admin",
         password: hashedPassword,
@@ -201,6 +204,10 @@ async function initializeAdmin() {
         referredBy: null,
       });
       console.log("Admin user created successfully");
+      if (!process.env.ADMIN_PASSWORD) {
+        console.log("⚠️  IMPORTANT: Default admin password is 'NarayaneSena2024!' - Please change it immediately!");
+        console.log("   Set ADMIN_PASSWORD environment variable to customize the admin password.");
+      }
     }
   } catch (error) {
     console.error("Error initializing admin:", error);
