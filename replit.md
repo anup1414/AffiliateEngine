@@ -1,123 +1,145 @@
-# Affiliate Marketing Platform
+# Narayane Sena - Project Overview
 
 ## Overview
+Narayane Sena is a professional membership and referral management platform built with React, Express, and PostgreSQL. The platform enables users to purchase memberships, earn through referrals, and provides a comprehensive admin panel for management.
 
-This is a full-stack affiliate marketing platform that enables users to earn ₹2,000 for each successful referral. The platform features a dual-interface system with separate dashboards for regular users and administrators. Users can purchase memberships (₹5,000 or ₹2,000 with a coupon), receive unique referral codes, track their earnings, and manage their profiles. Administrators can manage users, approve memberships, upload payment QR codes, and monitor platform-wide analytics.
+## Recent Changes
+
+### November 8, 2024
+- ✅ Set up PostgreSQL database for production use
+- ✅ Fixed authentication with PostgreSQL-backed session storage
+- ✅ Added sessions table to database schema
+- ✅ Fixed session TTL configuration (sessions now properly expire after 1 week)
+- ✅ Improved admin password security (now configurable via ADMIN_PASSWORD env var)
+- ✅ Created comprehensive deployment documentation (README.md)
+- ✅ Updated .gitignore to exclude uploads and sensitive files
+- ✅ Configured for Replit deployment with autoscale
+
+## Project Architecture
+
+### Frontend (React + TypeScript)
+- **Location**: `client/src/`
+- **Pages**:
+  - `/` - Login and registration page
+  - `/user/dashboard` - User dashboard with earnings and profile
+  - `/admin/dashboard` - Admin panel for user and membership management
+  - `/membership/purchase` - Membership purchase flow
+
+### Backend (Express + TypeScript)
+- **Location**: `server/`
+- **Key Files**:
+  - `server/index.ts` - Main server entry point
+  - `server/routes.ts` - API routes
+  - `server/auth.ts` - Authentication and session management
+  - `server/storage.ts` - Database operations using Drizzle ORM
+
+### Database Schema (PostgreSQL)
+- **Location**: `shared/schema.ts`
+- **Tables**:
+  - `users` - User accounts (regular and admin)
+  - `memberships` - Membership purchases and status
+  - `earnings` - Referral earnings tracking
+  - `payment_qr_codes` - Payment QR codes for membership purchases
+  - `admin_settings` - Admin configuration
+  - `sessions` - User session storage
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- **Deployment**: Replit deployment preferred for ease of use
+- **Database**: PostgreSQL for production reliability
+- **Authentication**: Secure session-based auth with PostgreSQL storage
+- **Admin Access**: Protected admin routes with role-based access control
 
-## System Architecture
+## Key Features
 
-### Frontend Architecture
+1. **User Management**
+   - User registration with admin approval required
+   - Profile management with photo upload
+   - Referral code system
 
-**Framework**: React 18+ with TypeScript, using Vite as the build tool and development server.
+2. **Membership System**
+   - ₹5000 regular membership
+   - ₹2000 with "SAVE3K" coupon code
+   - Payment via QR code upload
+   - Admin approval required for activation
 
-**UI Component System**: Shadcn/ui component library built on Radix UI primitives, following a dashboard-focused design system inspired by Stripe, Linear, and Vercel. The design emphasizes clarity and efficiency for data-intensive operations.
+3. **Referral Program**
+   - Earn ₹2000 per successful referral
+   - Track daily, weekly, and total earnings
+   - View referral history
 
-**Styling**: Tailwind CSS with custom theming supporting light/dark modes. Typography uses Inter for primary text and Roboto Mono for numerical data. The design system uses consistent spacing primitives (2, 4, 6, 8, 12, 16) and implements a card-based layout pattern.
+4. **Admin Panel**
+   - Comprehensive user management
+   - Membership approval workflow
+   - Payment QR code management
+   - Platform statistics and analytics
 
-**State Management**: TanStack Query (React Query) for server state management with aggressive caching (staleTime: Infinity) and disabled automatic refetching. Client state is managed with React hooks.
+## Environment Variables
 
-**Routing**: Wouter for lightweight client-side routing with protected routes based on authentication status and user role (admin vs. regular user).
+Required environment variables are automatically configured in Replit:
+- `DATABASE_URL` - PostgreSQL connection (auto-configured)
+- `SESSION_SECRET` - Session encryption secret (auto-configured)
+- `ADMIN_PASSWORD` - Admin password (default: NarayaneSena2024!)
+- `NODE_ENV` - Environment (development/production)
+- `PORT` - Server port (default: 5000)
 
-**Key Design Decisions**:
-- Component-based architecture with reusable UI primitives
-- Separation of concerns between user and admin interfaces
-- Real-time feedback through toast notifications
-- Responsive design with mobile-first approach
+## Deployment
 
-### Backend Architecture
+### Replit Deployment (Current Setup)
+- Click "Deploy" button to publish
+- Automatic HTTPS and custom domain support
+- Auto-scaling configured
+- Database included
 
-**Runtime**: Node.js with Express.js server framework.
+### Alternative: VPS Deployment
+See README.md for detailed VPS deployment instructions. Note: Requires VPS hosting, NOT WordPress/shared hosting.
 
-**Language**: TypeScript with ES modules for type safety and modern JavaScript features.
+## Admin Credentials
 
-**API Design**: RESTful API architecture with session-based authentication. All API routes are prefixed with `/api/`.
+- **Username**: `admin`
+- **Password**: `NarayaneSena2024!` (change immediately after first login)
+- **Email**: admin@narayanesena.com
 
-**Session Management**: Express sessions stored in PostgreSQL using `connect-pg-simple` with 7-day session lifetime. Sessions use HTTP-only cookies with secure flag in production.
+## Development
 
-**Authentication Flow**:
-- Password hashing with bcrypt (6 rounds)
-- Session-based authentication with middleware guards (`isAuthenticated`, `isAdmin`)
-- Auto-initialization of admin user on server startup
-- Support for referral code validation during registration
+### Start Development Server
+```bash
+npm run dev
+```
+Runs frontend (Vite) and backend (Express) on port 5000
 
-**File Upload Handling**: Multer middleware for multipart form data (profile pictures, QR codes) with local filesystem storage in `uploads/` directory.
+### Database Commands
+```bash
+npm run db:push    # Push schema changes to database
+npm run db:studio  # Open Drizzle Studio (database GUI)
+```
 
-**API Structure**:
-- `/api/auth/*` - Authentication endpoints (login, register, logout, user info)
-- `/api/membership/*` - Membership purchase and management
-- `/api/earnings/*` - Earnings tracking and statistics
-- `/api/admin/*` - Administrative operations (user management, QR codes)
+### Build for Production
+```bash
+npm run build      # Build frontend
+npm run start      # Start production server
+```
 
-### Data Storage
+## Security Features
 
-**Database**: PostgreSQL accessed via Neon serverless driver with WebSocket support for Node.js environments.
+- ✅ Bcrypt password hashing (10 rounds)
+- ✅ PostgreSQL-backed sessions with 1-week expiry
+- ✅ Secure cookies in production (HTTPS only)
+- ✅ Admin-only route protection
+- ✅ Input validation with Zod schemas
+- ✅ Session secret from environment variables
 
-**ORM**: Drizzle ORM with schema-first approach for type-safe database operations.
+## Known Issues / Notes
 
-**Schema Design**:
-- **users**: Core user table with admin flag, approval status, unique referral codes, and profile information
-- **memberships**: Tracks membership purchases with status (pending/active/expired), pricing, and coupon usage
-- **earnings**: Records referral earnings with user relationships and timestamps
-- **adminSettings**: Key-value store for system configuration (QR codes, coupons)
-- **paymentQRCodes**: Stores multiple payment QR codes with active/inactive status
-- **sessions**: Express session storage (managed by connect-pg-simple)
+- Sessions now properly expire after 1 week (fixed TTL configuration)
+- Admin password is configurable via ADMIN_PASSWORD env var for security
+- Uploads folder is gitignored - files stored locally during development
+- For production, consider cloud storage (AWS S3, Cloudinary) for uploads
 
-**Key Constraints**:
-- Unique username and referral codes
-- Foreign key relationships between users, memberships, and earnings
-- Default values for admin status, approval flags, and pricing
+## Future Enhancements
 
-**Migration Strategy**: Drizzle Kit for schema migrations with PostgreSQL dialect, migrations stored in `/migrations` directory.
-
-### Authentication and Authorization
-
-**Password Security**: Bcrypt hashing with configurable salt rounds (currently 6).
-
-**Session Configuration**:
-- 7-day session lifetime
-- HTTP-only cookies to prevent XSS
-- Secure flag enabled in production
-- Proxy trust for deployment environments
-
-**Authorization Levels**:
-- Unauthenticated: Access to login/register only
-- Authenticated User: Dashboard, profile, earnings, referral management
-- Admin: Full platform access including user approval and QR code management
-
-**Middleware Guards**:
-- `isAuthenticated`: Validates session exists and user is logged in
-- `isAdmin`: Additional check for admin privileges
-
-### External Dependencies
-
-**Database Service**: Neon PostgreSQL serverless database accessed via `@neondatabase/serverless` package with WebSocket constructor from `ws` package for Node.js compatibility.
-
-**UI Component Library**: Radix UI primitives for accessible, unstyled components (dialogs, dropdowns, tooltips, etc.) wrapped with Shadcn/ui styling conventions.
-
-**Form Handling**: React Hook Form with Zod schema validation via `@hookform/resolvers`.
-
-**Styling Tools**: 
-- Tailwind CSS for utility-first styling
-- `class-variance-authority` for component variant management
-- `clsx` and `tailwind-merge` for conditional class composition
-
-**Development Tools**:
-- Vite with React plugin and runtime error overlay
-- Replit-specific plugins for development environment integration (cartographer, dev banner)
-- TSX for TypeScript execution in development
-- ESBuild for production bundling
-
-**File Upload**: Multer for handling multipart/form-data file uploads.
-
-**Icon System**: Lucide React for consistent iconography throughout the application.
-
-**Date Handling**: Native JavaScript Date objects (no external date library).
-
-**Build Process**:
-- Development: Vite dev server with HMR
-- Production: Vite builds frontend to `dist/public`, ESBuild bundles server to `dist/index.js`
-- Database schema deployment via `drizzle-kit push` command
+- Email notifications for membership approvals
+- Payment gateway integration (Razorpay/Stripe)
+- Cloud storage for profile pictures and QR codes
+- Export functionality for admin reports
+- Mobile app version
