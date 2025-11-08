@@ -12,6 +12,8 @@ import type {
   InsertEarning,
   AdminSetting,
   InsertAdminSetting,
+  PaymentQRCode,
+  InsertPaymentQRCode,
 } from "@shared/schema";
 
 // Configure Neon for Node.js environment
@@ -48,6 +50,13 @@ export interface IStorage {
   // Admin settings operations
   getAdminSetting(key: string): Promise<AdminSetting | undefined>;
   setAdminSetting(setting: InsertAdminSetting): Promise<AdminSetting>;
+
+  // Payment QR Code operations
+  getAllPaymentQRCodes(): Promise<PaymentQRCode[]>;
+  getActivePaymentQRCodes(): Promise<PaymentQRCode[]>;
+  createPaymentQRCode(qrCode: InsertPaymentQRCode): Promise<PaymentQRCode>;
+  updatePaymentQRCode(id: string, qrCode: Partial<InsertPaymentQRCode>): Promise<PaymentQRCode | undefined>;
+  deletePaymentQRCode(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -226,6 +235,47 @@ export class DbStorage implements IStorage {
       .values(insertSetting)
       .returning();
     return setting;
+  }
+
+  // Payment QR Code operations
+  async getAllPaymentQRCodes(): Promise<PaymentQRCode[]> {
+    return await db.select().from(schema.paymentQRCodes).orderBy(desc(schema.paymentQRCodes.createdAt));
+  }
+
+  async getActivePaymentQRCodes(): Promise<PaymentQRCode[]> {
+    return await db
+      .select()
+      .from(schema.paymentQRCodes)
+      .where(eq(schema.paymentQRCodes.isActive, true))
+      .orderBy(desc(schema.paymentQRCodes.createdAt));
+  }
+
+  async createPaymentQRCode(
+    insertQRCode: InsertPaymentQRCode,
+  ): Promise<PaymentQRCode> {
+    const [qrCode] = await db
+      .insert(schema.paymentQRCodes)
+      .values(insertQRCode)
+      .returning();
+    return qrCode;
+  }
+
+  async updatePaymentQRCode(
+    id: string,
+    updateData: Partial<InsertPaymentQRCode>,
+  ): Promise<PaymentQRCode | undefined> {
+    const [qrCode] = await db
+      .update(schema.paymentQRCodes)
+      .set(updateData)
+      .where(eq(schema.paymentQRCodes.id, id))
+      .returning();
+    return qrCode;
+  }
+
+  async deletePaymentQRCode(id: string): Promise<void> {
+    await db
+      .delete(schema.paymentQRCodes)
+      .where(eq(schema.paymentQRCodes.id, id));
   }
 }
 

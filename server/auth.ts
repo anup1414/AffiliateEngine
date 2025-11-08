@@ -73,7 +73,12 @@ export async function setupAuth(app: Express) {
   // Register endpoint
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password, referralCode } = req.body;
+      const { username, password, email, phone, fullName, referralCode } = req.body;
+
+      // Validate required fields
+      if (!username || !password || !email || !phone) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
 
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(username);
@@ -87,13 +92,17 @@ export async function setupAuth(app: Express) {
       // Generate unique referral code
       const userReferralCode = Math.random().toString(36).substring(2, 14).toUpperCase();
 
-      // Create user
+      // Create user - they will need admin approval
       const newUser = await storage.createUser({
         username,
         password: hashedPassword,
+        email,
+        phone,
+        fullName: fullName || null,
         referralCode: userReferralCode,
         referredBy: referralCode || null,
         isAdmin: false,
+        isApproved: false,
       });
 
       // Store user session
@@ -105,9 +114,12 @@ export async function setupAuth(app: Express) {
           id: newUser.id,
           username: newUser.username,
           email: newUser.email,
+          phone: newUser.phone,
           fullName: newUser.fullName,
           isAdmin: newUser.isAdmin,
-        }
+          isApproved: newUser.isApproved,
+        },
+        message: "Registration successful. Awaiting admin approval."
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -134,6 +146,7 @@ export async function setupAuth(app: Express) {
         address: user.address,
         profilePicture: user.profilePicture,
         isAdmin: user.isAdmin,
+        isApproved: user.isApproved,
         referralCode: user.referralCode,
       });
     } catch (error) {
@@ -179,9 +192,11 @@ async function initializeAdmin() {
       await storage.createUser({
         username: "admin",
         password: hashedPassword,
-        email: "admin@platform.com",
+        email: "admin@narayanesena.com",
+        phone: "+919999999999",
         fullName: "Administrator",
         isAdmin: true,
+        isApproved: true,
         referralCode: "ADMIN",
         referredBy: null,
       });

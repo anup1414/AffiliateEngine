@@ -9,6 +9,26 @@ import AdminQRUpload from "@/components/AdminQRUpload";
 import { Users, IndianRupee, UserCheck, Settings, LogOut, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  profilePicture: string;
+  isApproved: boolean;
+  joinDate: string;
+  status: string;
+  earnings: number;
+  referrals: number;
+}
+
+interface AdminStats {
+  totalUsers: number;
+  activeMembers: number;
+  platformEarnings: number;
+}
 import {
   Sidebar,
   SidebarContent,
@@ -30,13 +50,13 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   // Fetch admin stats
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     enabled: !!user?.isAdmin,
   });
 
   // Fetch all users
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     enabled: !!user?.isAdmin,
   });
@@ -79,7 +99,8 @@ export default function AdminDashboard() {
       <div className="flex h-screen w-full">
         <Sidebar>
           <SidebarHeader className="p-6">
-            <h1 className="text-xl font-bold">Admin Panel</h1>
+            <h1 className="text-xl font-bold">Narayane Sena</h1>
+            <p className="text-sm text-muted-foreground">Admin Panel</p>
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
@@ -109,7 +130,7 @@ export default function AdminDashboard() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">Admin</p>
-                <p className="text-xs text-muted-foreground truncate">admin@platform.com</p>
+                <p className="text-xs text-muted-foreground truncate">admin@narayanesena.com</p>
               </div>
             </div>
             <Button variant="ghost" className="w-full justify-start" onClick={handleLogout} data-testid="button-admin-logout">

@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   address: text("address"),
   profilePicture: text("profile_picture"),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  isApproved: boolean("is_approved").default(false).notNull(),
   referralCode: varchar("referral_code", { length: 12 }).unique(),
   referredBy: varchar("referred_by", { length: 12 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -47,6 +48,16 @@ export const adminSettings = pgTable("admin_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Payment QR Codes table - for storing payment QR codes
+export const paymentQRCodes = pgTable("payment_qr_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  qrCodeImage: text("qr_code_image").notNull(),
+  upiId: text("upi_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -68,6 +79,11 @@ export const insertAdminSettingSchema = createInsertSchema(adminSettings).omit({
   updatedAt: true,
 });
 
+export const insertPaymentQRCodeSchema = createInsertSchema(paymentQRCodes).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -77,3 +93,5 @@ export type InsertEarning = z.infer<typeof insertEarningSchema>;
 export type Earning = typeof earnings.$inferSelect;
 export type InsertAdminSetting = z.infer<typeof insertAdminSettingSchema>;
 export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertPaymentQRCode = z.infer<typeof insertPaymentQRCodeSchema>;
+export type PaymentQRCode = typeof paymentQRCodes.$inferSelect;

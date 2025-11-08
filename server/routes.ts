@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin routes
+  // Admin routes - User Management
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -178,7 +178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: user.id,
             username: user.username,
             email: user.email,
+            phone: user.phone,
             fullName: user.fullName,
+            profilePicture: user.profilePicture,
+            isApproved: user.isApproved,
             joinDate: user.createdAt,
             status: membership?.status || "no-membership",
             earnings,
@@ -191,6 +194,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get admin users error:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/admin/users/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.updateUser(id, { isApproved: true });
+      res.json(user);
+    } catch (error) {
+      console.error("Approve user error:", error);
+      res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id/reject", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.updateUser(id, { isApproved: false });
+      res.json(user);
+    } catch (error) {
+      console.error("Reject user error:", error);
+      res.status(500).json({ message: "Failed to reject user" });
     }
   });
 
@@ -207,33 +232,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/qr-code", isAdmin, upload.single("qrCode"), async (req, res) => {
+  // Payment QR Code Management Routes
+  app.get("/api/admin/payment-qr-codes", isAdmin, async (req, res) => {
+    try {
+      const qrCodes = await storage.getAllPaymentQRCodes();
+      res.json(qrCodes);
+    } catch (error) {
+      console.error("Get QR codes error:", error);
+      res.status(500).json({ message: "Failed to fetch QR codes" });
+    }
+  });
+
+  app.get("/api/payment-qr-codes/active", async (req, res) => {
+    try {
+      const qrCodes = await storage.getActivePaymentQRCodes();
+      res.json(qrCodes);
+    } catch (error) {
+      console.error("Get active QR codes error:", error);
+      res.status(500).json({ message: "Failed to fetch active QR codes" });
+    }
+  });
+
+  app.post("/api/admin/payment-qr-codes", isAdmin, upload.single("qrCode"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      const { name, upiId } = req.body;
       const filePath = `/uploads/${req.file.filename}`;
       
-      await storage.setAdminSetting({
-        settingKey: "payment_qr_code",
-        settingValue: filePath,
+      const qrCode = await storage.createPaymentQRCode({
+        name: name || "Payment QR Code",
+        qrCodeImage: filePath,
+        upiId: upiId || null,
+        isActive: true,
       });
 
-      res.json({ qrCodePath: filePath });
+      res.json(qrCode);
     } catch (error) {
-      console.error("Upload QR code error:", error);
-      res.status(500).json({ message: "Failed to upload QR code" });
+      console.error("Create QR code error:", error);
+      res.status(500).json({ message: "Failed to create QR code" });
     }
   });
 
-  app.get("/api/admin/qr-code", async (req, res) => {
+  app.put("/api/admin/payment-qr-codes/:id", isAdmin, async (req, res) => {
     try {
-      const setting = await storage.getAdminSetting("payment_qr_code");
-      res.json({ qrCodePath: setting?.settingValue || null });
+      const { id } = req.params;
+      const { name, upiId, isActive } = req.body;
+      
+      const qrCode = await storage.updatePaymentQRCode(id, {
+        name,
+        upiId,
+        isActive,
+      });
+
+      res.json(qrCode);
     } catch (error) {
-      console.error("Get QR code error:", error);
-      res.status(500).json({ message: "Failed to fetch QR code" });
+      console.error("Update QR code error:", error);
+      res.status(500).json({ message: "Failed to update QR code" });
+    }
+  });
+
+  app.delete("/api/admin/payment-qr-codes/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePaymentQRCode(id);
+      res.json({ message: "QR code deleted successfully" });
+    } catch (error) {
+      console.error("Delete QR code error:", error);
+      res.status(500).json({ message: "Failed to delete QR code" });
     }
   });
 
