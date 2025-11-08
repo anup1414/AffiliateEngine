@@ -3,17 +3,62 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login/Register:", { username, password, referralCode });
+    setIsLoading(true);
+
+    try {
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const response: any = await apiRequest(endpoint, "POST", {
+        username,
+        password,
+        referralCode: !isLogin ? referralCode : undefined,
+      });
+
+      // Invalidate auth query to refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+      toast({
+        title: "Success!",
+        description: isLogin ? "Welcome back!" : "Account created successfully!",
+      });
+
+      // Redirect based on user type
+      if (response.user?.isAdmin) {
+        setLocation("/admin/dashboard");
+      } else {
+        // Check if user has membership
+        const membershipResponse = await fetch("/api/membership");
+        const membership = membershipResponse.ok ? await membershipResponse.json() : null;
+        
+        if (!membership) {
+          setLocation("/membership/purchase");
+        } else {
+          setLocation("/user/dashboard");
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || (isLogin ? "Login failed" : "Registration failed"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -41,6 +86,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             
@@ -54,6 +100,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -66,7 +113,8 @@ export default function LoginPage() {
                   type="text"
                   placeholder="Enter referral code if you have one"
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  disabled={isLoading}
                 />
               </div>
             )}
@@ -75,8 +123,9 @@ export default function LoginPage() {
               type="submit" 
               className="w-full"
               data-testid="button-submit"
+              disabled={isLoading}
             >
-              {isLogin ? "Sign In" : "Create Account"}
+              {isLoading ? "Please wait..." : (isLogin ? "Sign In" : "Create Account")}
             </Button>
           </form>
 
@@ -86,6 +135,7 @@ export default function LoginPage() {
               onClick={() => setIsLogin(!isLogin)}
               className="text-primary hover:underline"
               data-testid="button-toggle-mode"
+              disabled={isLoading}
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>

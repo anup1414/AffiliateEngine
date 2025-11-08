@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import StatsCard from "@/components/StatsCard";
 import ReferralLink from "@/components/ReferralLink";
 import TransactionTable from "@/components/TransactionTable";
-import UserProfile from "@/components/UserProfile";
-import { IndianRupee, Users, TrendingUp, User, LogOut } from "lucide-react";
+import { IndianRupee, TrendingUp, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Sidebar,
   SidebarContent,
@@ -20,41 +27,120 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import defaultAvatar from "@assets/generated_images/Default_user_avatar_5cf8f7b3.png";
 
 export default function UserDashboard() {
   const [activeView, setActiveView] = useState<"dashboard" | "profile" | "earnings">("dashboard");
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
 
-  // Mock data - todo: remove mock functionality
-  const mockTransactions = [
-    {
-      id: "1",
-      date: "2025-11-08",
-      description: "Referral earning from user @john_doe",
-      amount: 2000,
-      type: "earning" as const,
+  // Fetch earnings stats
+  const { data: stats } = useQuery({
+    queryKey: ["/api/earnings/stats"],
+    enabled: !!user,
+  });
+
+  // Fetch earnings history
+  const { data: earnings = [] } = useQuery({
+    queryKey: ["/api/earnings"],
+    enabled: !!user && activeView === "earnings",
+  });
+
+  // Profile form state
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.fullName || "");
+      setEmail(user.email || "");
+      setPhone(user.phone || "");
+      setAddress(user.address || "");
+    }
+  }, [user]);
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("/api/user/profile", "PUT", data);
     },
-    {
-      id: "2",
-      date: "2025-11-07",
-      description: "Referral earning from user @jane_smith",
-      amount: 2000,
-      type: "earning" as const,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
     },
-    {
-      id: "3",
-      date: "2025-11-05",
-      description: "Referral earning from user @mike_wilson",
-      amount: 2000,
-      type: "earning" as const,
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
     },
-  ];
+  });
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate({ fullName, email, phone, address });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", "POST", {});
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+    }
+  }, [user, authLoading, toast]);
+
+  if (authLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   const menuItems = [
     { id: "dashboard", title: "Dashboard", icon: TrendingUp },
     { id: "earnings", title: "Earnings", icon: IndianRupee },
     { id: "profile", title: "Profile", icon: User },
   ];
+
+  const referralLink = user.referralCode 
+    ? `${window.location.origin}/?ref=${user.referralCode}`
+    : "";
+
+  const transactions = earnings.map((earning: any) => ({
+    id: earning.id,
+    date: new Date(earning.earnedAt).toLocaleDateString(),
+    description: `Referral earning from user`,
+    amount: earning.amount,
+    type: "earning" as const,
+  }));
 
   return (
     <SidebarProvider>
@@ -87,15 +173,15 @@ export default function UserDashboard() {
           <SidebarFooter className="p-4">
             <div className="flex items-center gap-3 p-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={defaultAvatar} />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={user.profilePicture} />
+                <AvatarFallback>{user.username?.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+                <p className="text-sm font-medium truncate">{user.fullName || user.username}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start" data-testid="button-logout">
+            <Button variant="ghost" className="w-full justify-start" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -117,35 +203,97 @@ export default function UserDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <StatsCard
                     title="Daily Earnings"
-                    value="₹2,000"
+                    value={`₹${(stats?.daily || 0).toLocaleString()}`}
                     icon={IndianRupee}
-                    trend="+1 referral today"
                   />
                   <StatsCard
                     title="7-Day Earnings"
-                    value="₹8,000"
+                    value={`₹${(stats?.weekly || 0).toLocaleString()}`}
                     icon={IndianRupee}
-                    trend="+4 referrals this week"
                   />
                   <StatsCard
                     title="Lifetime Earnings"
-                    value="₹24,000"
+                    value={`₹${(stats?.total || 0).toLocaleString()}`}
                     icon={IndianRupee}
-                    trend="12 total referrals"
                   />
                 </div>
-                <ReferralLink link="https://example.com/ref/ABC123XYZ" />
+                {referralLink && <ReferralLink link={referralLink} />}
               </div>
             )}
 
             {activeView === "earnings" && (
               <div className="p-6">
-                <TransactionTable transactions={mockTransactions} />
+                <TransactionTable transactions={transactions} />
               </div>
             )}
 
             {activeView === "profile" && (
-              <UserProfile />
+              <div className="max-w-2xl mx-auto p-6">
+                <Card data-testid="card-profile">
+                  <CardHeader>
+                    <CardTitle className="text-2xl">Profile Settings</CardTitle>
+                    <CardDescription>
+                      Manage your personal information
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleProfileSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Full Name</Label>
+                          <Input
+                            id="name"
+                            data-testid="input-name"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            data-testid="input-email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            data-testid="input-phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Address</Label>
+                          <Input
+                            id="address"
+                            data-testid="input-address"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        data-testid="button-save-profile"
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </main>
         </div>

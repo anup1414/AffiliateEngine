@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import StatsCard from "@/components/StatsCard";
 import AdminUsersTable from "@/components/AdminUsersTable";
 import AdminQRUpload from "@/components/AdminQRUpload";
@@ -22,56 +26,53 @@ import {
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<"dashboard" | "users" | "payments">("dashboard");
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
 
-  // Mock data - todo: remove mock functionality
-  const mockUsers = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      joinDate: "2025-11-01",
-      status: "active" as const,
-      earnings: 24000,
-      referrals: 12,
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      joinDate: "2025-11-05",
-      status: "active" as const,
-      earnings: 8000,
-      referrals: 4,
-    },
-    {
-      id: "3",
-      name: "Mike Wilson",
-      email: "mike@example.com",
-      joinDate: "2025-11-07",
-      status: "pending" as const,
-      earnings: 0,
-      referrals: 0,
-    },
-    {
-      id: "4",
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      joinDate: "2025-11-06",
-      status: "active" as const,
-      earnings: 6000,
-      referrals: 3,
-    },
-  ];
+  // Fetch admin stats
+  const { data: stats } = useQuery({
+    queryKey: ["/api/admin/stats"],
+    enabled: !!user?.isAdmin,
+  });
+
+  // Fetch all users
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/admin/users"],
+    enabled: !!user?.isAdmin,
+  });
+
+  // Redirect to login if not authenticated or not admin
+  useEffect(() => {
+    if (!authLoading && (!user || !user.isAdmin)) {
+      toast({
+        title: "Unauthorized",
+        description: "Admin access required",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+    }
+  }, [user, authLoading, toast]);
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", "POST", {});
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  if (authLoading || !user?.isAdmin) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   const menuItems = [
     { id: "dashboard", title: "Overview", icon: Settings },
     { id: "users", title: "All Users", icon: Users },
     { id: "payments", title: "Payment QR", icon: QrCode },
   ];
-
-  const totalUsers = mockUsers.length;
-  const activeUsers = mockUsers.filter(u => u.status === "active").length;
-  const totalEarnings = mockUsers.reduce((sum, u) => sum + u.earnings, 0);
 
   return (
     <SidebarProvider>
@@ -111,7 +112,7 @@ export default function AdminDashboard() {
                 <p className="text-xs text-muted-foreground truncate">admin@platform.com</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start" data-testid="button-admin-logout">
+            <Button variant="ghost" className="w-full justify-start" onClick={handleLogout} data-testid="button-admin-logout">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -133,27 +134,27 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <StatsCard
                     title="Total Users"
-                    value={totalUsers.toString()}
+                    value={(stats?.totalUsers || 0).toString()}
                     icon={Users}
                   />
                   <StatsCard
                     title="Active Members"
-                    value={activeUsers.toString()}
+                    value={(stats?.activeMembers || 0).toString()}
                     icon={UserCheck}
                   />
                   <StatsCard
                     title="Platform Earnings"
-                    value={`₹${totalEarnings.toLocaleString()}`}
+                    value={`₹${(stats?.platformEarnings || 0).toLocaleString()}`}
                     icon={IndianRupee}
                   />
                 </div>
-                <AdminUsersTable users={mockUsers} />
+                <AdminUsersTable users={users} />
               </div>
             )}
 
             {activeView === "users" && (
               <div className="p-6">
-                <AdminUsersTable users={mockUsers} />
+                <AdminUsersTable users={users} />
               </div>
             )}
 

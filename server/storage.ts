@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
-import { Pool } from "@neondatabase/serverless";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import * as schema from "@shared/schema";
 import type {
   User,
@@ -12,6 +13,9 @@ import type {
   AdminSetting,
   InsertAdminSetting,
 } from "@shared/schema";
+
+// Configure Neon for Node.js environment
+neonConfig.webSocketConstructor = ws;
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
